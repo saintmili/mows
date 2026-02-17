@@ -1,3 +1,6 @@
+[![Go Reference](https://pkg.go.dev/badge/github.com/saintmili/mows.svg)](https://pkg.go.dev/github.com/saintmili/mows)
+[![Go Report Card](https://goreportcard.com/badge/github.com/saintmili/mows)](https://goreportcard.com/report/github.com/saintmili/mows)
+
 # MOWS - My Own Web Server
 
 A **minimal HTTP web framework for Go**, designed for **learning**, **simplicity**, and **zero boilerplate**.
