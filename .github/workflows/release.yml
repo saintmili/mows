@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - production
+
+permisions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: action/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: action/setup-go@v5
+        with:
+          go-version: "1.25.5"
+
+      - name: Run Tests
+        run: go test ./...
+
+      - name: Determine version bump
+        id: bump
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.1.0")
+          echo "Last tag: $LAST_TAG"
+
+          COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:"%s")
+
+          if echo "$COMMITS" | grep -q "breaking:"; then
+            TYPE=major
+          elif echo "$COMMITS" | grep -q "feat:"; then
+            TYPE=minor
+          else
+            TYPE=patch
+          fi
+
+          VERSION=$(echo $LAST_TAG | sed 's/v//')
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+          if [ "$TYPE" = "major" ]; then
+            MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0
+          elif [ "$TYPE" = "minor" ]; then
+            MINOR=$((MINOR+1)); PATCH=0
+          else
+            PATCH=$((PATCH+1))
+          fi
+
+          NEW_VERSION="v$MAJOR.$MINOR.$PATCH"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create tag
+        run: |
+          git tag ${{ steps.bump.outputs.new_version }}
+          git push origin ${{ steps.bump.outputs.new_version }}
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+          git log --prety=format:"- $s" $(git describe --tags --abbrev=0) ..HEAD >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Github Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.bump.outputs.new_version }}
+          body: ${{ steps.changelog.outputs.CHANGELOG }}
