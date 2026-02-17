@@ -278,7 +278,15 @@ myapp/
 │   └── auth.go
 ├── middleware/
 │   └── auth.go
-└── models/
+├── models/
+│
+└── views/
+    ├── layouts/
+    │     └── base.html
+    ├── pages/
+    │     └── home.html
+    └── partials/
+          └── navbar.html
 ```
 
 ## Testing Example

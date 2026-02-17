@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path"
 	"syscall"
 	"time"
 
@@ -33,6 +34,8 @@ type Engine struct {
 	rootGroup    *RouterGroup
 	validate     *validator.Validate
 	errorHandler ErrorHandler
+	templates    *TemplateEngine
+	devMode      bool
 }
 
 // New creates and returns a new Engine instance.
@@ -146,14 +149,14 @@ func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 //
 // It performs the following steps:
 //
-//   1. Wraps the ResponseWriter to track status and size.
-//   2. Creates a new Context for the request.
-//   3. Matches the request path and method against registered routes.
-//   4. Returns 404 if no route is found.
-//   5. Sets path parameters in the Context.
-//   6. Wraps the route handler with route-specific middleware.
-//   7. Wraps the result with global middleware via buildChain.
-//   8. Executes the final handler and forwards any error to the configured error handler.
+//  1. Wraps the ResponseWriter to track status and size.
+//  2. Creates a new Context for the request.
+//  3. Matches the request path and method against registered routes.
+//  4. Returns 404 if no route is found.
+//  5. Sets path parameters in the Context.
+//  6. Wraps the route handler with route-specific middleware.
+//  7. Wraps the result with global middleware via buildChain.
+//  8. Executes the final handler and forwards any error to the configured error handler.
 //
 // Note: This function implements the core of the request lifecycle
 // and should not be called directly by users.
@@ -191,7 +194,7 @@ func (e *Engine) Group(prefix string, m ...Middleware) *RouterGroup {
 	return &RouterGroup{
 		prefix:      prefix,
 		middlewares: m,
-		engine:         e,
+		engine:      e,
 	}
 }
 
@@ -234,14 +237,26 @@ func (e *Engine) SetErrorHandler(h ErrorHandler) {
 	e.errorHandler = h
 }
 
-// serverError represents a JSON structure for internal server errors.
+// Static serves files from a directory under a given URL prefix.
+// Example:
 //
-// It is used to send a consistent error response when a handler fails
-// or a panic is recovered.
+//	app.Static("/static", "./public")
 //
-// Example JSON response:
-//
-//	{ "error": "something went wrong" }
-type serverError struct {
-	Error string `json:"error"`
+// Then /static/app.css -> ./public/app.css
+func (e *Engine) Static(prefix string, root string) {
+	fs := http.FileServer(http.Dir(root))
+
+	// We use a wildcard route internally
+	routePath := path.Join(prefix, "/*filepath")
+
+	e.GET(routePath, func(c *Context) error {
+		// remove prefix from URL path
+		http.StripPrefix(prefix, fs).ServeHTTP(c.Writer, c.Request)
+		return nil
+	})
+}
+
+// DevMode enables hot reload for templates.
+func (e *Engine) DevMode(enable bool) {
+	e.devMode = enable
 }

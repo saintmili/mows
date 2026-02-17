@@ -21,7 +21,7 @@ type Context struct {
 	Request *http.Request
 	Params  map[string]string
 	Status  int
-	Engine  *Engine
+	engine  *Engine
 }
 
 // NewContext creates a new Context for the incoming HTTP request.
@@ -32,7 +32,7 @@ func NewContext(w *responseWriter, r *http.Request, engine *Engine) *Context {
 		Request: r,
 		Params:  make(map[string]string),
 		Status:  200,
-		Engine:  engine,
+		engine:  engine,
 	}
 }
 
@@ -98,7 +98,8 @@ func (c *Context) BindJSON(v any) error {
 // Query returns the value of a query parameter.
 //
 // Example:
-//   /users?page=2 → c.Query("page") == "2"
+//
+//	/users?page=2 → c.Query("page") == "2"
 func (c *Context) Query(key string) string {
 	return c.Request.URL.Query().Get(key)
 }
@@ -164,7 +165,7 @@ func (c *Context) DefaultQueryBool(key string, defaultValue bool) bool {
 // Validate validates a struct using the configured validator.
 // Returns an error if validation fails.
 func (c *Context) Validate(v any) error {
-	return c.Engine.validate.Struct(v)
+	return c.engine.validate.Struct(v)
 }
 
 // BindJSONAndValidate binds JSON request body into the struct and validates it.
@@ -179,4 +180,22 @@ func (c *Context) BindJSONAndValidate(v any) error {
 	}
 
 	return nil
+}
+
+// HTML renders an HTML template.
+func (c *Context) HTML(code int, name string, data any) error {
+	if c.engine.templates == nil {
+		return ErrTemplatesNotLoaded
+	}
+
+	if c.engine.devMode {
+		if err := c.engine.templates.load(); err != nil {
+			return err
+		}
+	}
+
+	c.Writer.Header().Set("Content-Type", "text/html; charset=utf-8")
+	c.Writer.WriteHeader(code)
+
+	return c.engine.templates.tmpl.ExecuteTemplate(c.Writer, name, data)
 }
