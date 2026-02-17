@@ -1,0 +1,13 @@
+{{ define "layout" }}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ .title }}</title>
+    <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+    {{ template "content" . }}
+</body>
+</html>
+{{ end }}
+

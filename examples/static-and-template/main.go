@@ -9,6 +9,8 @@ import (
 func main() {
 	app := mows.New()
 
+	app.DevMode(true)
+
 	app.Static("/static", "./public")
 
 	err := app.LoadTemplates("views/*.html")

@@ -189,8 +189,10 @@ func (c *Context) HTML(code int, name string, data any) error {
 	}
 
 	if c.engine.devMode {
-		if err := c.engine.templates.load(); err != nil {
-			return err
+		if c.engine.templates.tmpl != nil {
+			if err := c.engine.templates.load(); err != nil {
+				return err
+			}
 		}
 	}
 

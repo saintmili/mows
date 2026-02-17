@@ -255,6 +255,39 @@ app.POST("/users", func(c *mows.Context) error {
 })
 ```
 
+## Embedded Static Files & Templates (Production Ready)
+
+MOWS supports embedding **static files** and **HTML templates** directly into your Go binary using Go 1.16+ `embed.FS`.
+
+### Static files
+
+```go
+import "embed"
+
+//go:embed public/*
+var publicFS embed.FS
+
+app.StaticFS("/static", publicFS, "public")
+```
+
+Now `/static/css/app.css` is served from the binary.
+
+### Templates
+
+```go
+import "embed"
+
+//go:embed views/*
+var viewsFS embed.FS
+
+app.LoadTemplatesFS(viewsFS, "views/**/*.html")
+```
+
+Templates support:
+- Layouts and partials
+- Custom template functions (AddTemplateFunc)
+- Hot reload in dev mode (only with LoadTemplates from filesystem)
+
 ## Request Lifecycle
 
 For each request:
@@ -316,8 +349,6 @@ func TestHelloRoute(t *testing.T) {
 ## Roadmap (Upcoming)
 
 Planned features:
-- Static file serving
-- HTML templates
 - Request ID middleware
 - Error handling / abort system
 - Validation helpers

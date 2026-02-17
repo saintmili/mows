@@ -256,7 +256,12 @@ func (e *Engine) Static(prefix string, root string) {
 	})
 }
 
-// DevMode enables hot reload for templates.
+// DevMode enables or disables hot reload for templates.
+//
+// When enabled, Engine will reload filesystem templates before each render,
+// allowing developers to see changes instantly without restarting the server.
+//
+// Note: Hot reload does NOT apply to templates loaded from embed.FS.
 func (e *Engine) DevMode(enable bool) {
 	e.devMode = enable
 }

@@ -2,6 +2,7 @@ package mows
 
 import (
 	"html/template"
+	"io/fs"
 	"time"
 )
 
@@ -51,7 +52,16 @@ func defaultFuncMap() template.FuncMap {
 	}
 }
 
-// AddTemplateFunc allows registering custom template helpers.
+// AddTemplateFunc registers a custom helper function for templates.
+//
+// name: function name to use inside templates  
+// fn: the Go function (any compatible type)  
+//
+// Example:
+//
+//    app.AddTemplateFunc("upper", strings.ToUpper)
+//
+// Now you can use {{ upper "hello" }} inside templates.
 func (e *Engine) AddTemplateFunc(name string, fn any) {
 	if e.templates == nil {
 		e.templates = &TemplateEngine{
@@ -77,5 +87,46 @@ func (t *TemplateEngine) load() error {
 	}
 
 	t.tmpl = parsed
+	return nil
+}
+
+// loadFS parses templates from an embedded filesystem using the provided pattern.
+//
+// The parsed templates are stored in TemplateEngine.tmpl and are ready to render.
+// Returns an error if parsing fails.
+func (t *TemplateEngine) loadFS(filesystem fs.FS, pattern string) error {
+	tmpl := template.New("").Funcs(t.funcMap)
+
+	parsed, err := tmpl.ParseFS(filesystem, pattern)
+	if err != nil {
+		return err
+	}
+
+	t.tmpl = parsed
+	return nil
+}
+
+// LoadTemplatesFS loads HTML templates from an embedded filesystem (embed.FS).
+//
+// filesystem: embedded FS containing template files  
+// pattern: glob pattern of templates (e.g., "views/**/*.html")
+//
+// Example:
+//
+//    app.LoadTemplatesFS(viewsFS, "views/**/*.html")
+//
+// Use this in production when templates are embedded.
+// Hot reload only works when using LoadTemplates() with real filesystem.
+func (e *Engine) LoadTemplatesFS(filesystem fs.FS, pattern string) error {
+	engine := &TemplateEngine{
+		pattern: pattern,
+		funcMap: defaultFuncMap(),
+	}
+
+	if err := engine.loadFS(filesystem, pattern); err != nil {
+		return err
+	}
+
+	e.templates = engine
 	return nil
 }
